@@ -1,30 +1,11 @@
 /**
  * Created by ELREY on 17/12/2017.
  */
-var $id = 1;
 var services = firebase.database().ref().child('services').set(null);
-var database = firebase.database().ref().child('services/service'+$id); 
+var database = firebase.database().ref().child('services'); 
 var $form = $('#formServices')[0];
 var $serviceKey = [];
-var datatable = $('#services').DataTable( {
-        data: [],
-        "bSort" : false,
-        "searching": false,
-        "paging": false,
-        "sDom": 'rt',
-        columns: [
-            { title: "Nombre" },
-            { title: "Descipción" },
-            { title: "Correo" },    
-            { title: "Acciones" },    
-        ],
-  
-        "columnDefs": [ {
-            "targets": -1,
-            "data": null,
-            "defaultContent": '<button onClick="deleteService(this)" type="button" class="btn btn-danger btn-sm"><i class="fa fa-trash-o" aria-hidden="true"></i></button>'
-        } ]
-    } );
+var datatable = $('#services').DataTable();
 
 $(document).ready(function () {  
     allServices();  
@@ -40,45 +21,20 @@ $(document).ready(function () {
 });
 
 function addService(name, description, email) {
-  database.set({name: name, description: description, email: email});
-  $id = $id + 1;
+  database.push({name: name, description: description, email: email});
   $form.reset();
-  database = firebase.database().ref().child('services/service'+$id); 
 }
 
 function deleteService(button) {
   var id = $(button).attr("data-delete");
-  var service = firebase.database().ref().child('services/'+id).remove();   
+  var service = database.child(id).remove();
+  datatable.row($(button).parent().parent()).remove().draw(false);
 }
 
 function allServices(){
-  services = firebase.database().ref('/services'); 
-  services.on('value', function(snapshot){    
-  var dataset = snapshotToArray(snapshot);    
-    datatable.clear();
-    datatable.rows.add(dataset);
-    datatable.draw();
-    
-    var buttons = $('#services button');
-    buttons.each(function(index, button){
-      $(button).attr("data-delete", $serviceKey[index]);
-    });
-  });  
+  database.on("child_added", function (snapshot) {
+    var temp = [snapshot.val().name, snapshot.val().description, snapshot.val().email, null];
+    var tr = '<tr role="row"><td>' + snapshot.val().name + '</td><td>' + snapshot.val().description + '</td><td>' + snapshot.val().email + '</td><td><button onClick="deleteService(this)" type="button" data-delete="' + snapshot.key + '" style="cursor: pointer;" class="btn btn-danger btn-sm"><i class="fa fa-trash-o" aria-hidden="true"></i></button></td></tr>';
+    datatable.row.add($(tr)).draw();
+  });
 }
-
-function snapshotToArray(snapshot) {
-    var returnArr = [];
-    $serviceKey = [];
-    snapshot.forEach(function(childSnapshot) {
-        var item = childSnapshot.val();
-        item.key = childSnapshot.key;
-        $serviceKey.push(item.key);
-        console.log($serviceKey);
-        var temp = [item.name, item.description, item.email];
-        returnArr.push(temp);
-    });
-
-    return returnArr;
-}
-
-
